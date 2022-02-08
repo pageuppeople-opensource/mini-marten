@@ -6,7 +6,7 @@ namespace MartenApi.EventStore.Document;
 
 public interface IDocumentService
 {
-    Task<Document?> TryGetDocumentById(IQuerySession querySession, Guid documentId,
+    Task<Document?> TryGetDocumentById(IQuerySession querySession, string documentId,
         CancellationToken token = default);
 
     Document CreateDocument(IEventTransactionSession session, string owner, string content);

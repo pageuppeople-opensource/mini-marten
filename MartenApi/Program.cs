@@ -1,4 +1,5 @@
 using Marten;
+using Marten.Events;
 using Marten.Events.Projections;
 using Marten.Storage;
 using MartenApi.EventStore.Document;
@@ -12,14 +13,20 @@ builder.Services.AddMarten(options =>
     options.Connection(
         "Server=localhost;Port=5432;Database=marten;User Id=postgres;Password=postgres;");
 
+    // Multi tenancy
     options.Policies.AllDocumentsAreMultiTenanted();
     options.Advanced.DefaultTenantUsageEnabled = false;
     options.Events.TenancyStyle = TenancyStyle.Conjoined;
 
+    // Enable metadata
     options.Events.MetadataConfig.HeadersEnabled = true;
     options.Events.MetadataConfig.CorrelationIdEnabled = true;
     options.Events.MetadataConfig.CausationIdEnabled = true;
 
+    // Use string types as streamids. Generated ids will be guids serialised as string.
+    options.Events.StreamIdentity = StreamIdentity.AsString;
+
+    // Add projections
     options.Projections.Add<DocumentAggregation>(ProjectionLifecycle.Live);
 });
 

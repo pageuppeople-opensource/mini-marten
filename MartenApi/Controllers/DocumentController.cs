@@ -22,7 +22,7 @@ public class DocumentController : ControllerBase
     {
         await using var session = _martenSessionFactory.GetQuerySession();
 
-        var document = await _documentService.TryGetDocumentById(session, id, token);
+        var document = await _documentService.TryGetDocumentById(session, id.ToString(), token);
         if (document is null)
         {
             return NotFound(id);
@@ -45,7 +45,7 @@ public class DocumentController : ControllerBase
             var document = _documentService.CreateDocument(session, owner, content);
 
             await session.Commit(token);
-            return CreatedAtAction(nameof(Get), new {id = document.Id}, document);
+            return CreatedAtAction(nameof(Get), new { id = document.DocumentId }, document);
         });
     }
 
@@ -58,12 +58,12 @@ public class DocumentController : ControllerBase
         {
             // Forces all changes after this line to be committed immediately after the latest event version _as of this line_
             // Or rollback
-            if (!await session.MarkStreamForUpdateIfExists(id, token))
+            if (!await session.MarkStreamForUpdateIfExists(id.ToString(), token))
             {
                 return NotFound(id);
             }
 
-            var document = await _documentService.TryGetDocumentById(session.QuerySession, id, token);
+            var document = await _documentService.TryGetDocumentById(session.QuerySession, id.ToString(), token);
             if (document is null)
             {
                 return NotFound(id);

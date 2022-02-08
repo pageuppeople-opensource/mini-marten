@@ -314,19 +314,6 @@ public sealed class EventTransactionSession : IEventTransactionSession
 
     #region TransactionState
     
-    public async Task<bool> MarkStreamForUpdateIfExists(Guid streamId, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await AppendOptimistic(streamId, cancellationToken);
-            return true;
-        }
-        catch (NonExistentStreamException)
-        {
-            return false;
-        }
-    }
-
     public async Task<bool> MarkStreamForUpdateIfExists(string streamKey, CancellationToken cancellationToken = default)
     {
         try

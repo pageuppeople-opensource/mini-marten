@@ -1,12 +1,26 @@
-﻿namespace MartenApi.EventStore.Document;
+﻿using Marten.Events.Aggregation;
+using Marten.Schema;
 
-/// <summary>
-/// Note: Everything is immutable
-/// </summary>
+namespace MartenApi.EventStore.Document;
 
-public record Document
+public record Document([property: Identity] string DocumentId, string? Owner, string? Content);
+
+public class DocumentAggregation : AggregateProjection<Document>
 {
-    public Guid Id { get; init; }
-    public string? Owner { get; init; }
-    public string? Content { get; init; }
+    public static DocumentAggregation Instance { get; } = new();
+
+    public Document Create(CreateDoc @event)
+    {
+        return new Document(DocumentId: @event.DocumentId, Owner: @event.Owner, Content: @event.Content);
+    }
+
+    public Document Apply(UpdateDoc @event, Document current)
+    {
+        return current with { Content = @event.Content };
+    }
+
+    public Document Apply(ChangeDocOwner @event, Document current)
+    {
+        return current with { Owner = @event.NewOwner };
+    }
 }

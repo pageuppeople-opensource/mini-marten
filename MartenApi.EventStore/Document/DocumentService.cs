@@ -1,12 +1,12 @@
 ﻿using Marten;
-using MartenApi.EventStore.Document.Events;
+using Marten.Schema.Identity;
 using MartenApi.EventStore.Impl;
 
 namespace MartenApi.EventStore.Document;
 
 public class DocumentService : IDocumentService
 {
-    public Task<Document?> TryGetDocumentById(IQuerySession querySession, Guid documentId,
+    public Task<Document?> TryGetDocumentById(IQuerySession querySession, string documentId,
         CancellationToken token = default)
     {
         return querySession.Events.AggregateStreamAsync<Document>(documentId, token: token);
@@ -14,20 +14,22 @@ public class DocumentService : IDocumentService
 
     public Document CreateDocument(IEventTransactionSession session, string owner, string content)
     {
-        var createEvent = new CreateDoc {Content = content, Owner = owner};
-        var documentId = session.StartStream<Document>(createEvent).Id;
-        return DocumentAggregation.Instance.Create(createEvent, documentId);
+        var streamId = CombGuidIdGeneration.NewGuid().ToString();
+        var createEvent = new CreateDoc(streamId, Content: content, Owner: owner);
+
+        session.StartStream<Document>(streamId, createEvent);
+
+        return DocumentAggregation.Instance.Create(createEvent);
     }
 
     public async Task<Document> UpdateDocumentContent(IEventTransactionSession session, Document document,
         string content, CancellationToken token = default)
     {
-        var updateEvent = new UpdateDoc
-        {
-            Content = content
-        };
+        var documentId = document.DocumentId ??
+                         throw new ArgumentException("Document id is null", nameof(document.DocumentId));
 
-        await session.AppendOptimistic(document.Id, updateEvent);
+        var updateEvent = new UpdateDoc(documentId, content);
+        await session.AppendOptimistic(documentId, token, updateEvent);
 
         return DocumentAggregation.Instance.Apply(updateEvent, document);
     }
@@ -35,12 +37,12 @@ public class DocumentService : IDocumentService
     public async Task<Document> UpdateDocumentOwner(IEventTransactionSession session, Document document, string owner,
         CancellationToken token = default)
     {
-        var changeEvent = new ChangeDocOwner
-        {
-            NewOwner = owner
-        };
+        var documentId = document.DocumentId ??
+                         throw new ArgumentException("Document id is null", nameof(document.DocumentId));
 
-        await session.AppendOptimistic(document.Id, changeEvent);
+        var changeEvent = new ChangeDocOwner(documentId, owner);
+
+        await session.AppendOptimistic(documentId, token, changeEvent);
 
         return DocumentAggregation.Instance.Apply(changeEvent, document);
     }
