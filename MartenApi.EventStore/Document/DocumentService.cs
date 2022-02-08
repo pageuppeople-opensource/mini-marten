@@ -19,31 +19,26 @@ public class DocumentService : IDocumentService
 
         session.StartStream<Document>(streamId, createEvent);
 
-        return DocumentAggregation.Instance.Create(createEvent);
+        return DocumentProjection.Instance.Create(createEvent);
     }
 
     public async Task<Document> UpdateDocumentContent(IEventTransactionSession session, Document document,
         string content, CancellationToken token = default)
     {
-        var documentId = document.DocumentId ??
-                         throw new ArgumentException("Document id is null", nameof(document.DocumentId));
+        var updateEvent = new UpdateDoc(document.DocumentId, content);
+        await session.AppendOptimistic(document.DocumentId, token, updateEvent);
 
-        var updateEvent = new UpdateDoc(documentId, content);
-        await session.AppendOptimistic(documentId, token, updateEvent);
-
-        return DocumentAggregation.Instance.Apply(updateEvent, document);
+        return DocumentProjection.Instance.Apply(updateEvent, document);
     }
 
-    public async Task<Document> UpdateDocumentOwner(IEventTransactionSession session, Document document, string owner,
+    public async Task<Document> UpdateDocumentOwner(IEventTransactionSession session, Document document,
+        string newOwner,
         CancellationToken token = default)
     {
-        var documentId = document.DocumentId ??
-                         throw new ArgumentException("Document id is null", nameof(document.DocumentId));
+        var changeEvent = new ChangeDocOwner(document.DocumentId, document.Owner, newOwner);
 
-        var changeEvent = new ChangeDocOwner(documentId, owner);
+        await session.AppendOptimistic(document.DocumentId, token, changeEvent);
 
-        await session.AppendOptimistic(documentId, token, changeEvent);
-
-        return DocumentAggregation.Instance.Apply(changeEvent, document);
+        return DocumentProjection.Instance.Apply(changeEvent, document);
     }
 }

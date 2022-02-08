@@ -1,5 +1,6 @@
 using Marten;
 using Marten.Events;
+using Marten.Events.Daemon.Resiliency;
 using Marten.Events.Projections;
 using Marten.Storage;
 using MartenApi.EventStore.Document;
@@ -27,8 +28,10 @@ builder.Services.AddMarten(options =>
     options.Events.StreamIdentity = StreamIdentity.AsString;
 
     // Add projections
-    options.Projections.Add<DocumentAggregation>(ProjectionLifecycle.Live);
-});
+    options.Projections.Add<DocumentProjection>(ProjectionLifecycle.Live);
+    options.Projections.Add<DocumentOwnerProjection>(ProjectionLifecycle.Async);
+
+}).AddAsyncDaemon(builder.Environment.IsDevelopment() ? DaemonMode.Solo : DaemonMode.HotCold);
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

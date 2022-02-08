@@ -1,13 +1,12 @@
 ﻿using Marten.Events.Aggregation;
-using Marten.Schema;
 
 namespace MartenApi.EventStore.Document;
 
-public record Document([property: Identity] string DocumentId, string? Owner, string? Content);
+public record Document(string DocumentId, string Owner, string Content);
 
-public class DocumentAggregation : AggregateProjection<Document>
+public class DocumentProjection : AggregateProjection<Document>
 {
-    public static DocumentAggregation Instance { get; } = new();
+    public static DocumentProjection Instance { get; } = new();
 
     public Document Create(CreateDoc @event)
     {
