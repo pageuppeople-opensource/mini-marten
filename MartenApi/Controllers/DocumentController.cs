@@ -1,5 +1,4 @@
-﻿
-using MartenApi.EventStore.Document;
+﻿using MartenApi.EventStore.Document;
 using MartenApi.EventStore.Document.Projections;
 using MartenApi.EventStore.Impl;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +19,7 @@ public class DocumentController : ControllerBase
     }
 
     /// <summary>
-    /// Get a document by id.
+    ///     Get a document by id.
     /// </summary>
     /// <param name="documentId">The document id</param>
     /// <param name="token">Cancellation token</param>
@@ -39,21 +38,19 @@ public class DocumentController : ControllerBase
             return NotFound();
         }
 
+        // TODO: Validate user has access
         var document = await _documentService.TryGetDocumentById(session, unhashedId, token);
         if (document is null)
         {
             return NotFound(documentId);
         }
 
-        // TODO: Validate user has access
-
         return Ok(new DocumentResponse(document));
     }
 
-
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    public async Task<IActionResult> Post([FromBody] string content, CancellationToken token)
+    public async Task<IActionResult> Post([FromBody] DocumentContentRequest request, CancellationToken token)
     {
         // TODO: Use auth for current owner
         var owner = "foo";
@@ -61,15 +58,16 @@ public class DocumentController : ControllerBase
 
         return await _martenSessionFactory.RunInTransaction(async session =>
         {
-            var document = await _documentService.CreateDocument(session, owner, content, token);
+            var document = await _documentService.CreateDocument(session, owner, request.Title, request.Content, token);
 
             await session.Commit(token);
-            return CreatedAtAction(nameof(Get), new {documentId = document.DocumentId.Hash<Document>()}, new DocumentResponse(document));
+            return CreatedAtAction(nameof(Get), new {documentId = document.DocumentId.Hash<Document>()},
+                new DocumentResponse(document));
         });
     }
 
     /// <summary>
-    /// Update a document's content.
+    ///     Update a document's content.
     /// </summary>
     /// <param name="documentId">The document id</param>
     /// <param name="newContent">The new content of the document</param>
@@ -78,7 +76,8 @@ public class DocumentController : ControllerBase
     [HttpPut("{documentId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(string))]
-    public async Task<ActionResult<DocumentResponse>> Put(string documentId, [FromBody] string newContent, CancellationToken token)
+    public async Task<ActionResult<DocumentResponse>> Put(string documentId,
+        [FromBody] DocumentContentRequest newContent, CancellationToken token)
     {
         return await _martenSessionFactory.RunInTransaction<ActionResult<DocumentResponse>>(async session =>
         {
@@ -106,11 +105,23 @@ public class DocumentController : ControllerBase
                 return NotFound(documentId);
             }
 
-            var updatedDocument = await _documentService.UpdateDocumentContent(session, document, newContent, token);
+            var updatedDocument =
+                await _documentService.UpdateDocument(
+                    session,
+                    document,
+                    newContent.Title ?? document.Title,
+                    newContent.Content ?? document.Content,
+                    token);
 
             await session.Commit(token);
-            return Ok(updatedDocument);
+            return Ok(new DocumentResponse(updatedDocument));
         });
+    }
+
+    public record DocumentContentRequest
+    {
+        public string? Title { get; init; }
+        public string? Content { get; init; }
     }
 
     public record DocumentResponse
@@ -119,11 +130,14 @@ public class DocumentController : ControllerBase
         {
             DocumentId = document.DocumentId.Hash<Document>();
             Owner = document.Owner;
+            Title = document.Title;
             Content = document.Content;
         }
 
         public string DocumentId { get; }
         public string Owner { get; }
+
+        public string Title { get; }
         public string Content { get; }
     }
 }

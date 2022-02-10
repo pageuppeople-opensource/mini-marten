@@ -2,6 +2,7 @@
 using Marten.Events;
 using Marten.Exceptions;
 using Marten.Linq;
+using Marten.Schema.Identity;
 
 namespace MartenApi.EventStore.Impl;
 
@@ -335,6 +336,12 @@ public sealed class EventTransactionSession : IEventTransactionSession
     public async ValueTask Rollback()
     {
         await DisposeAsyncCore();
+    }
+
+    public void CorrelateEvents()
+    {
+        CreateOrGetDocumentSession().CorrelationId =
+            CreateOrGetDocumentSession().CorrelationId ?? CombGuidIdGeneration.NewGuid().ToString();
     }
 
     public async Task Commit(CancellationToken cancellationToken = default)

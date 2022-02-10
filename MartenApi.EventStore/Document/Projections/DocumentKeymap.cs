@@ -1,5 +1,4 @@
 ﻿using Marten.Events;
-using Marten.Events.Aggregation;
 using Marten.Schema;
 using Marten.Schema.Indexing.Unique;
 

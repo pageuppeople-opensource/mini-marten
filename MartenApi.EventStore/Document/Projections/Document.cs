@@ -4,7 +4,12 @@ using Marten.Schema;
 
 namespace MartenApi.EventStore.Document.Projections;
 
-public record Document(long DocumentId, [property: Identity] string StreamKey, string Owner, string Content)
+public record Document(
+    long DocumentId, 
+    [property: Identity] string StreamKey, 
+    string Owner, 
+    string Title,
+    string Content)
 {
     public static Document Create(DocumentCreated @event, IEvent metadata)
     {
@@ -18,15 +23,21 @@ public record Document(long DocumentId, [property: Identity] string StreamKey, s
             @event.DocumentId,
             streamKey,
             @event.Owner,
+            @event.Title,
             @event.Content);
     }
 
-    public static Document Apply(DocumentContentUpdated @event, Document current)
+    public Document Apply(DocumentTitleUpdated @event, Document current)
+    {
+        return current with { Title = @event.Title };
+    }
+
+    public Document Apply(DocumentContentUpdated @event, Document current)
     {
         return current with { Content = @event.Content };
     }
 
-    public static Document Apply(DocumentOwnerChanged @event, Document current)
+    public Document Apply(DocumentOwnerChanged @event, Document current)
     {
         return current with { Owner = @event.NewOwner };
     }

@@ -29,7 +29,7 @@ public class DocumentService : IDocumentService
     public async Task<Projections.Document?> TryGetDocumentByStreamKey(IQuerySession querySession, string streamKey,
         CancellationToken token = default)
     {
-        return await querySession.Events.AggregateStreamAsync<Projections.Document>(streamKey, token: token);
+        return await querySession.Events.AggregateStreamAsync<Projections.Document>(streamKey, version: 5, token: token);
     }
 
     public async Task<string?> TryGetDocumentStreamKeyById(IQuerySession querySession, long documentId,
@@ -47,24 +47,40 @@ public class DocumentService : IDocumentService
         return querySession.Query<DocumentOwner>().OrderBy(d => d.Owner).ToAsyncEnumerable(token);
     }
 
-    public async Task<Projections.Document> CreateDocument(IEventTransactionSession session, string owner, string content,
+    public async Task<Projections.Document> CreateDocument(IEventTransactionSession session, string owner, string title,
+        string content,
         CancellationToken token = default)
     {
         var newDocumentId = await _entityIdProvider.GetNextId<Projections.Document>(session.QuerySession, token);
         var streamKey = CombGuidIdGeneration.NewGuid().ToString();
-        var createEvent = new DocumentCreated(newDocumentId, Owner: owner, Title: string.Empty, Content: content);
-        
+        var createEvent = new DocumentCreated(newDocumentId, Owner: owner, Title: title, Content: content);
+
         session.StartStream<Projections.Document>(streamKey, createEvent);
         return Projections.Document.Create(createEvent, streamKey);
     }
 
-    public async Task<Projections.Document> UpdateDocumentContent(IEventTransactionSession session, Projections.Document document,
-        string content, CancellationToken token = default)
+    public async Task<Projections.Document> UpdateDocument(IEventTransactionSession session, Projections.Document document,
+        string title, string content, CancellationToken token = default)
     {
-        var updateEvent = new DocumentContentUpdated(document.DocumentId, content);
-        await session.AppendOptimistic(document.StreamKey, token, updateEvent);
+        session.CorrelateEvents();
 
-        return Projections.Document.Apply(updateEvent, document);
+        var newDoc = document;
+
+        if (document.Title != title)
+        {
+            var updateEvent = new DocumentTitleUpdated(document.DocumentId, title);
+            await session.AppendOptimistic(document.StreamKey, token, updateEvent);
+            newDoc = newDoc.Apply(updateEvent, newDoc);
+        }
+
+        if (document.Content != content)
+        {
+            var updateEvent = new DocumentContentUpdated(document.DocumentId, content);
+            await session.AppendOptimistic(document.StreamKey, token, updateEvent);
+            newDoc = newDoc.Apply(updateEvent, newDoc);
+        }
+
+        return newDoc;
     }
 
     public async Task<Projections.Document> UpdateDocumentOwner(IEventTransactionSession session, Projections.Document document,
@@ -74,6 +90,6 @@ public class DocumentService : IDocumentService
         var changeEvent = new DocumentOwnerChanged(document.DocumentId, document.Owner, newOwner);
         await session.AppendOptimistic(document.StreamKey, token, changeEvent);
 
-        return Projections.Document.Apply(changeEvent, document);
+        return document.Apply(changeEvent, document);
     }
 }

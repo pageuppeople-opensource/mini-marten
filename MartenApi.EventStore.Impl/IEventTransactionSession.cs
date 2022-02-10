@@ -9,5 +9,6 @@ public interface IEventTransactionSession : IEventStore, IDisposable, IAsyncDisp
     Task<bool> MarkStreamForUpdateIfExists(string streamKey, CancellationToken cancellationToken = default);
     PendingChangesSummary PendingChanges();
     ValueTask Rollback();
+    void CorrelateEvents();
     Task Commit(CancellationToken cancellationToken = default);
 }

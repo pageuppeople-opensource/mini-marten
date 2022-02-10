@@ -3,7 +3,9 @@ using Marten.Schema;
 
 namespace MartenApi.EventStore.Document.Projections;
 
-public record DocumentOwner([property: Identity] string Owner, IReadOnlyList<long>? DocumentIds = null)
+public record DocumentOwner(
+    [property: Identity] string Owner, 
+    IReadOnlyList<long>? DocumentIds = null)
 {
     public IReadOnlyList<long> DocumentIds { get; init; } = DocumentIds ?? Array.Empty<long>();
 }
