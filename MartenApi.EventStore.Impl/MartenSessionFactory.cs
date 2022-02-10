@@ -14,10 +14,10 @@ public class MartenSessionFactory : IMartenSessionFactory
         _tenantId = "FAKE TENANT ID";
     }
 
-    public async Task<TResult> RunInTransaction<TResult>(Func<IEventTransactionSession, Task<TResult>> command)
+    public async Task<TResult> RunInTransaction<TResult>(Func<ITransactionSession, Task<TResult>> command)
     {
         // TODO: Wrap in a try/catch to support event retry
-        await using var session = new EventTransactionSession(CreateDocumentSession);
+        await using var session = new TransactionSession(CreateDocumentSession);
         var result = await command(session);
 
         var pendingChanges = session.PendingChanges();
@@ -29,10 +29,10 @@ public class MartenSessionFactory : IMartenSessionFactory
         return result;
     }
 
-    public async Task RunInTransaction(Func<IEventTransactionSession, Task> command)
+    public async Task RunInTransaction(Func<ITransactionSession, Task> command)
     {
         // TODO: Wrap in a try/catch to support event retry
-        await using var session = new EventTransactionSession(CreateDocumentSession);
+        await using var session = new TransactionSession(CreateDocumentSession);
         await command(session);
 
         var pendingChanges = session.PendingChanges();

@@ -15,15 +15,15 @@ public interface IDocumentService
     Task<string?> TryGetDocumentStreamKeyById(IQuerySession querySession, long documentId,
         CancellationToken token = default);
 
-    Task<Projections.Document> CreateDocument(IEventTransactionSession session, string owner, string title,
+    Task<Projections.Document> CreateDocument(ITransactionSession session, string owner, string title,
         string content,
         CancellationToken token = default);
 
-    Task<Projections.Document> UpdateDocument(IEventTransactionSession session, Projections.Document document,
+    Task<Projections.Document> UpdateDocument(ITransactionSession session, Projections.Document document,
         string title, string content,
         CancellationToken token = default);
 
-    Task<Projections.Document> UpdateDocumentOwner(IEventTransactionSession session, Projections.Document document,
+    Task<Projections.Document> UpdateDocumentOwner(ITransactionSession session, Projections.Document document,
         string newOwner,
         CancellationToken token = default);
 
