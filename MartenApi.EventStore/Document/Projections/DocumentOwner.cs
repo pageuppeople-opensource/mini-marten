@@ -1,7 +1,7 @@
 ﻿using Marten.Events.Projections;
 using Marten.Schema;
 
-namespace MartenApi.EventStore.Document;
+namespace MartenApi.EventStore.Document.Projections;
 
 public record DocumentOwner([property: Identity] string Owner, IReadOnlyList<long>? DocumentIds = null)
 {
@@ -12,23 +12,23 @@ public class DocumentOwnerProjection : ViewProjection<DocumentOwner, string>
 {
     public DocumentOwnerProjection()
     {
-        Identity<CreateDoc>(e => e.Owner);
-        Identities<ChangeDocOwner>(e => new[] {e.OldOwner, e.NewOwner});
+        Identity<DocumentCreated>(e => e.Owner);
+        Identities<DocumentOwnerChanged>(e => new[] {e.OldOwner, e.NewOwner});
     }
 
-    public DocumentOwner Create(CreateDoc @event)
+    public DocumentOwner Create(DocumentCreated @event)
     {
         return new DocumentOwner(@event.Owner, new[] {@event.DocumentId});
     }
 
-    public DocumentOwner Create(ChangeDocOwner @event)
+    public DocumentOwner Create(DocumentOwnerChanged @event)
     {
         // ASSUMPTION: OldOwner is not the new owner id
         return new DocumentOwner(@event.NewOwner, new[] {@event.DocumentId});
     }
 
     // These never get called, the create always gets called.
-    public DocumentOwner Apply(CreateDoc @event, DocumentOwner current)
+    public DocumentOwner Apply(DocumentCreated @event, DocumentOwner current)
     {
         return current with
         {
@@ -37,7 +37,7 @@ public class DocumentOwnerProjection : ViewProjection<DocumentOwner, string>
         };
     }
 
-    public DocumentOwner Apply(ChangeDocOwner @event, DocumentOwner current)
+    public DocumentOwner Apply(DocumentOwnerChanged @event, DocumentOwner current)
     {
         if (@event.OldOwner == current.Owner)
         {

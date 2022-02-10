@@ -4,6 +4,7 @@ using Marten.Events.Daemon.Resiliency;
 using Marten.Events.Projections;
 using Marten.Storage;
 using MartenApi.EventStore.Document;
+using MartenApi.EventStore.Document.Projections;
 using MartenApi.EventStore.Impl;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,9 +33,9 @@ builder.Services.AddMarten(options =>
 
     // Add projections
     // inline because it only happens on extremely rare events (document create)
-    options.Projections.Add<DocumentKeymapProjection>(ProjectionLifecycle.Inline);
-    // intended to be fetched by streamkey
-    options.Projections.Add<DocumentProjection>(ProjectionLifecycle.Live);
+    options.Projections.SelfAggregate<DocumentKeymap>(ProjectionLifecycle.Inline);
+    // intended to be fetched by streamKey
+    options.Projections.SelfAggregate<Document>(ProjectionLifecycle.Live);
     options.Projections.Add<DocumentOwnerProjection>(ProjectionLifecycle.Async);
 }).AddAsyncDaemon(builder.Environment.IsDevelopment() ? DaemonMode.Solo : DaemonMode.HotCold);
 

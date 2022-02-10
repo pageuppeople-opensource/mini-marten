@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using MartenApi.EventStore.Document;
+using MartenApi.EventStore.Document.Projections;
 using MartenApi.EventStore.Impl;
 using Microsoft.AspNetCore.Mvc;
 
