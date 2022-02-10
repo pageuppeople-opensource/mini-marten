@@ -6,27 +6,63 @@ namespace MartenApi.EventStore.Document;
 
 public class DocumentService : IDocumentService
 {
-    public Task<Document?> TryGetDocumentById(IQuerySession querySession, string documentId,
-        CancellationToken token = default)
+    private readonly IEntityIdProvider _entityIdProvider;
+
+    public DocumentService(IEntityIdProvider entityIdProvider)
     {
-        return querySession.Events.AggregateStreamAsync<Document>(documentId, token: token);
+        _entityIdProvider = entityIdProvider;
     }
 
-    public Document CreateDocument(IEventTransactionSession session, string owner, string content)
+    public async Task<Document?> TryGetDocumentById(IQuerySession querySession, long documentId,
+        CancellationToken token = default)
     {
-        var streamId = CombGuidIdGeneration.NewGuid().ToString();
-        var createEvent = new CreateDoc(streamId, Content: content, Owner: owner);
+        var streamKey = await TryGetDocumentStreamKeyById(querySession, documentId, token);
 
-        session.StartStream<Document>(streamId, createEvent);
+        if (streamKey is null)
+        {
+            return null;
+        }
 
-        return DocumentProjection.Instance.Create(createEvent);
+        return await TryGetDocumentByStreamKey(querySession, streamKey, token);
+    }
+
+    public async Task<Document?> TryGetDocumentByStreamKey(IQuerySession querySession, string streamKey,
+        CancellationToken token = default)
+    {
+        return await querySession.Events.AggregateStreamAsync<Document>(streamKey, token: token);
+    }
+
+    public async Task<string?> TryGetDocumentStreamKeyById(IQuerySession querySession, long documentId,
+        CancellationToken token = default)
+    {
+        var streamKey = await querySession.Query<DocumentKeymap>().Where(x => x.DocumentId == documentId)
+            .Select(x => x.StreamKey).SingleOrDefaultAsync(token);
+
+        return streamKey;
+    }
+
+    public IAsyncEnumerable<DocumentOwner> GetDocumentOwners(IQuerySession querySession,
+        CancellationToken token = default)
+    {
+        return querySession.Query<DocumentOwner>().OrderBy(d => d.Owner).ToAsyncEnumerable(token);
+    }
+
+    public async Task<Document> CreateDocument(IEventTransactionSession session, string owner, string content,
+        CancellationToken token = default)
+    {
+        var newDocumentId = await _entityIdProvider.GetNextId<Document>(session.QuerySession, token);
+        var streamKey = CombGuidIdGeneration.NewGuid().ToString();
+        var createEvent = new CreateDoc(newDocumentId, Content: content, Owner: owner);
+        
+        session.StartStream<Document>(streamKey, createEvent);
+        return DocumentProjection.Instance.Create(createEvent, streamKey);
     }
 
     public async Task<Document> UpdateDocumentContent(IEventTransactionSession session, Document document,
         string content, CancellationToken token = default)
     {
         var updateEvent = new UpdateDoc(document.DocumentId, content);
-        await session.AppendOptimistic(document.DocumentId, token, updateEvent);
+        await session.AppendOptimistic(document.StreamKey, token, updateEvent);
 
         return DocumentProjection.Instance.Apply(updateEvent, document);
     }
@@ -37,7 +73,7 @@ public class DocumentService : IDocumentService
     {
         var changeEvent = new ChangeDocOwner(document.DocumentId, document.Owner, newOwner);
 
-        await session.AppendOptimistic(document.DocumentId, token, changeEvent);
+        await session.AppendOptimistic(document.StreamKey, token, changeEvent);
 
         return DocumentProjection.Instance.Apply(changeEvent, document);
     }

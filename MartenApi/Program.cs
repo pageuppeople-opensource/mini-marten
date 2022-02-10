@@ -16,7 +16,7 @@ builder.Services.AddMarten(options =>
 
     // Multi tenancy
     options.Policies.AllDocumentsAreMultiTenanted();
-    options.Advanced.DefaultTenantUsageEnabled = false;
+    //options.Advanced.DefaultTenantUsageEnabled = false;
     options.Events.TenancyStyle = TenancyStyle.Conjoined;
 
     // Enable metadata
@@ -27,10 +27,15 @@ builder.Services.AddMarten(options =>
     // Use string types as streamids. Generated ids will be guids serialised as string.
     options.Events.StreamIdentity = StreamIdentity.AsString;
 
+    // Add entity ids
+    options.Storage.Add<EntityId<Document>>();
+
     // Add projections
+    // inline because it only happens on extremely rare events (document create)
+    options.Projections.Add<DocumentKeymapProjection>(ProjectionLifecycle.Inline);
+    // intended to be fetched by streamkey
     options.Projections.Add<DocumentProjection>(ProjectionLifecycle.Live);
     options.Projections.Add<DocumentOwnerProjection>(ProjectionLifecycle.Async);
-
 }).AddAsyncDaemon(builder.Environment.IsDevelopment() ? DaemonMode.Solo : DaemonMode.HotCold);
 
 builder.Services.AddControllers();
@@ -41,12 +46,15 @@ builder.Services.AddSwaggerGen();
 // Build sessions per request
 // TODO: Throw in a tenant manager
 builder.Services.AddScoped<IMartenSessionFactory, MartenSessionFactory>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
 
-// As these services dont need anything injected themselves, they can be singletons
-builder.Services.AddSingleton<IDocumentService, DocumentService>();
+// As these services don't need anything injected themselves (apart from other singletons) they can be singletons
+builder.Services.AddSingleton<IEntityIdProvider, EntityIdProvider>();
 
 
 var app = builder.Build();
+
+await (app.Services.GetService<IDocumentStore>() as DocumentStore)!.Schema.ApplyAllConfiguredChangesToDatabaseAsync();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
