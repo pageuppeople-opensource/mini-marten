@@ -9,6 +9,9 @@ public interface IDocumentService
     Task<Projections.Document?> TryGetDocumentById(IQuerySession querySession, long documentId,
         CancellationToken token = default);
 
+    IAsyncEnumerable<DocumentSearch> SearchDocuments(IQuerySession querySession, string? searchQuery, int page = 0,
+        int pageSize = 10, CancellationToken token = default);
+
     Task<Projections.Document?> TryGetDocumentByStreamKey(IQuerySession querySession, string streamKey,
         CancellationToken token = default);
 

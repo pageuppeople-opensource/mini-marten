@@ -1,4 +1,5 @@
 ﻿using Marten;
+using Marten.Services;
 
 namespace MartenApi.EventStore.Impl;
 

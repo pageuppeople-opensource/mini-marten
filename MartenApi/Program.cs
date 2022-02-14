@@ -37,6 +37,7 @@ builder.Services.AddMarten(options =>
     // intended to be fetched by streamKey
     options.Projections.SelfAggregate<Document>(ProjectionLifecycle.Live);
     options.Projections.Add<DocumentOwnerProjection>(ProjectionLifecycle.Async);
+    options.Projections.SelfAggregate<DocumentSearch>(ProjectionLifecycle.Async);
 }).AddAsyncDaemon(builder.Environment.IsDevelopment() ? DaemonMode.Solo : DaemonMode.HotCold);
 
 builder.Services.AddControllers();

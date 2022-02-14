@@ -26,10 +26,35 @@ public class DocumentService : IDocumentService
         return await TryGetDocumentByStreamKey(querySession, streamKey, token);
     }
 
+    public IAsyncEnumerable<DocumentSearch> SearchDocuments(IQuerySession querySession, string? searchQuery,
+        int page = 0, int pageSize = 10,
+        CancellationToken token = default)
+    {
+        if (page <= 1)
+        {
+            page = 1;
+        }
+
+        if (pageSize <= 0)
+        {
+            return AsyncEnumerable.Empty<DocumentSearch>();
+        }
+
+        var query = querySession.Query<DocumentSearch>() as IQueryable<DocumentSearch>;
+
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            query = query.Where(x => x.PlainTextSearch(searchQuery));
+        }
+
+        return query.Skip((page - 1) * pageSize).Take(pageSize)
+            .ToAsyncEnumerable(token);
+    }
+
     public async Task<Projections.Document?> TryGetDocumentByStreamKey(IQuerySession querySession, string streamKey,
         CancellationToken token = default)
     {
-        return await querySession.Events.AggregateStreamAsync<Projections.Document>(streamKey, version: 5, token: token);
+        return await querySession.Events.AggregateStreamAsync<Projections.Document>(streamKey, 5, token: token);
     }
 
     public async Task<string?> TryGetDocumentStreamKeyById(IQuerySession querySession, long documentId,
@@ -53,7 +78,7 @@ public class DocumentService : IDocumentService
     {
         var newDocumentId = await _entityIdProvider.GetNextId<Projections.Document>(session.QuerySession, token);
         var streamKey = CombGuidIdGeneration.NewGuid().ToString();
-        var createEvent = new DocumentCreated(newDocumentId, Owner: owner, Title: title, Content: content);
+        var createEvent = new DocumentCreated(newDocumentId, owner, title, content);
 
         session.Events.StartStream<Projections.Document>(streamKey, createEvent);
         return Projections.Document.Create(createEvent, streamKey);
@@ -83,7 +108,8 @@ public class DocumentService : IDocumentService
         return newDoc;
     }
 
-    public async Task<Projections.Document> UpdateDocumentOwner(ITransactionSession session, Projections.Document document,
+    public async Task<Projections.Document> UpdateDocumentOwner(ITransactionSession session,
+        Projections.Document document,
         string newOwner,
         CancellationToken token = default)
     {

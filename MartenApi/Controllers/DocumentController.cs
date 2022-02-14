@@ -1,4 +1,5 @@
-﻿using MartenApi.EventStore.Document;
+﻿using System.Runtime.CompilerServices;
+using MartenApi.EventStore.Document;
 using MartenApi.EventStore.Document.Projections;
 using MartenApi.EventStore.Impl;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,20 @@ public class DocumentController : ControllerBase
     {
         _martenSessionFactory = martenSessionFactory;
         _documentService = documentService;
+    }
+
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async IAsyncEnumerable<DocumentSearchResponse> Search(string? searchText,
+        [EnumeratorCancellation] CancellationToken token,
+        int page = 0)
+    {
+        await using var session = _martenSessionFactory.GetQuerySession();
+
+        var documents = _documentService.SearchDocuments(session, searchText, page, 10, token);
+
+        await foreach (var document in documents.WithCancellation(token))
+            yield return new DocumentSearchResponse(document);
     }
 
     /// <summary>
@@ -50,7 +65,7 @@ public class DocumentController : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    public async Task<IActionResult> Post([FromBody] DocumentContentRequest request, CancellationToken token)
+    public async Task<IActionResult> CreateDocument([FromBody] CreateDocumentRequest request, CancellationToken token)
     {
         // TODO: Use auth for current owner
         var owner = "foo";
@@ -76,8 +91,8 @@ public class DocumentController : ControllerBase
     [HttpPut("{documentId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(string))]
-    public async Task<ActionResult<DocumentResponse>> Put(string documentId,
-        [FromBody] DocumentContentRequest newContent, CancellationToken token)
+    public async Task<ActionResult<DocumentResponse>> UpdateDocument(string documentId,
+        [FromBody] UpdateDocumentRequest newContent, CancellationToken token)
     {
         return await _martenSessionFactory.RunInTransaction<ActionResult<DocumentResponse>>(async session =>
         {
@@ -118,10 +133,34 @@ public class DocumentController : ControllerBase
         });
     }
 
-    public record DocumentContentRequest
+    public record DocumentSearchResponse
+    {
+        public DocumentSearchResponse(DocumentSearch document)
+        {
+            DocumentId = document.DocumentId.Hash<Document>();
+            Owner = document.Owner;
+            Title = document.Title;
+            LastModified = document.LastModified;
+        }
+
+        public string DocumentId { get; }
+        public string Owner { get; }
+
+        public string Title { get; }
+
+        public DateTimeOffset LastModified { get; }
+    }
+
+    public record UpdateDocumentRequest
     {
         public string? Title { get; init; }
         public string? Content { get; init; }
+    }
+
+    public record CreateDocumentRequest
+    {
+        public string Title { get; init; }
+        public string Content { get; init; }
     }
 
     public record DocumentResponse
