@@ -4,12 +4,12 @@ namespace MartenApi.EventStore.Impl;
 
 public record PendingChangesSummary
 {
-    public IUnitOfWork? UnitOfWork { get; init; }
     public int DocumentInserts { get; init; }
     public int DocumentUpdates { get; init; }
     public int DocumentDeletions { get; init; }
     public int StreamWrites { get; init; }
     public int TotalOperations { get; init; }
+    public IUnitOfWork? UnitOfWork { get; init; }
 
     public bool AnyChanges => DocumentInserts > 0 || DocumentUpdates > 0 || DocumentDeletions > 0 || StreamWrites > 0 ||
                               TotalOperations > 0;
