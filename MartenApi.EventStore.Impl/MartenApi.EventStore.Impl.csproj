@@ -1,13 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <DefineConstants>STRONGLY_TYPED_ID_EMBED_ATTRIBUTES</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Marten" Version="5.0.0-alpha.5" />
+    <PackageReference Include="StronglyTypedId" Version="1.0.0-beta05" PrivateAssets="all" ExcludeAssets="compile;runtime" />
   </ItemGroup>
 
 </Project>

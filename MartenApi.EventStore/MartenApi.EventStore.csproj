@@ -4,11 +4,13 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <DefineConstants>STRONGLY_TYPED_ID_EMBED_ATTRIBUTES</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Hashids.net" Version="1.4.1" />
     <PackageReference Include="Marten" Version="5.0.0-alpha.5" />
+    <PackageReference Include="StronglyTypedId" Version="1.0.0-beta05" PrivateAssets="all" ExcludeAssets="compile;runtime" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 

@@ -1,13 +1,14 @@
 ﻿using Marten.Events.Projections;
 using Marten.Schema;
+using MartenApi.EventStore.Events;
 
-namespace MartenApi.EventStore.Document.Projections;
+namespace MartenApi.EventStore.Projections.Document;
 
 public record DocumentOwner(
     [property: Identity] string Owner, 
-    IReadOnlyList<long>? DocumentIds = null)
+    IReadOnlyList<DocumentId>? DocumentIds = null)
 {
-    public IReadOnlyList<long> DocumentIds { get; init; } = DocumentIds ?? Array.Empty<long>();
+    public IReadOnlyList<DocumentId> DocumentIds { get; init; } = DocumentIds ?? Array.Empty<DocumentId>();
 }
 
 public class DocumentOwnerProjection : ViewProjection<DocumentOwner, string>
@@ -20,13 +21,13 @@ public class DocumentOwnerProjection : ViewProjection<DocumentOwner, string>
 
     public DocumentOwner Create(DocumentCreated @event)
     {
-        return new DocumentOwner(@event.Owner, new[] {@event.DocumentId});
+        return new DocumentOwner(@event.Owner, new [] {@event.DocumentId});
     }
 
     public DocumentOwner Create(DocumentOwnerChanged @event)
     {
         // ASSUMPTION: OldOwner is not the new owner id
-        return new DocumentOwner(@event.NewOwner, new[] {@event.DocumentId});
+        return new DocumentOwner(@event.NewOwner, new [] {@event.DocumentId});
     }
 
     // These never get called, the create always gets called.

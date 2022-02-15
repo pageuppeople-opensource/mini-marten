@@ -1,16 +1,11 @@
-﻿using System.Linq;
-using System.Linq.Expressions;
-using System.Text.RegularExpressions;
-using Marten;
-using Marten.Events;
-using Marten.Events.CodeGeneration;
-using Marten.Linq;
+﻿using Marten.Events;
 using Marten.Schema;
+using MartenApi.EventStore.Events;
 
-namespace MartenApi.EventStore.Document.Projections;
+namespace MartenApi.EventStore.Projections.Document;
 
 public record DocumentSearch(
-    long DocumentId,
+    DocumentId DocumentId,
     [property: Identity] string StreamKey,
     [property: DuplicateField] string Owner,
     [property: FullTextIndex] string Title,

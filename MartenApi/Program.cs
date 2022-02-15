@@ -3,9 +3,9 @@ using Marten.Events;
 using Marten.Events.Daemon.Resiliency;
 using Marten.Events.Projections;
 using Marten.Storage;
-using MartenApi.EventStore.Document;
-using MartenApi.EventStore.Document.Projections;
 using MartenApi.EventStore.Impl;
+using MartenApi.EventStore.Projections.Document;
+using MartenApi.EventStore.Query;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,13 +29,13 @@ builder.Services.AddMarten(options =>
     options.Events.StreamIdentity = StreamIdentity.AsString;
 
     // Add entity ids
-    options.Storage.Add<EntityId<Document>>();
+    options.Storage.Add<EntityId<DocumentDetail>>();
 
     // Add projections
     // inline because it only happens on extremely rare events (document create)
     options.Projections.SelfAggregate<DocumentKeymap>(ProjectionLifecycle.Inline);
     // intended to be fetched by streamKey
-    options.Projections.SelfAggregate<Document>(ProjectionLifecycle.Live);
+    options.Projections.SelfAggregate<DocumentDetail>(ProjectionLifecycle.Live);
     options.Projections.Add<DocumentOwnerProjection>(ProjectionLifecycle.Async);
     options.Projections.SelfAggregate<DocumentSearch>(ProjectionLifecycle.Async);
 }).AddAsyncDaemon(builder.Environment.IsDevelopment() ? DaemonMode.Solo : DaemonMode.HotCold);
@@ -48,10 +48,10 @@ builder.Services.AddSwaggerGen();
 // Build sessions per request
 // TODO: Throw in a tenant manager
 builder.Services.AddScoped<IMartenSessionFactory, MartenSessionFactory>();
-builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IDocumentQueryService, DocumentQueryService>();
 
 // As these services don't need anything injected themselves (apart from other singletons) they can be singletons
-builder.Services.AddSingleton<IEntityIdProvider, EntityIdProvider>();
+builder.Services.AddSingleton<IIdProvider, IdProvider>();
 
 
 var app = builder.Build();

@@ -1,22 +1,26 @@
 ﻿using System.Runtime.CompilerServices;
-using MartenApi.EventStore.Document;
-using MartenApi.EventStore.Document.Projections;
+using MartenApi.EventStore;
+using MartenApi.EventStore.Command;
 using MartenApi.EventStore.Impl;
+using MartenApi.EventStore.Projections.Document;
+using MartenApi.EventStore.Query;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MartenApi.Controllers;
 
-[Route("Document")]
+[Route("DocumentDetail")]
 [ApiController]
 public class DocumentController : ControllerBase
 {
-    private readonly IDocumentService _documentService;
+    private readonly IDocumentQueryService _documentQueryService;
+    private readonly IDocumentCommandService _documentCommandService;
     private readonly IMartenSessionFactory _martenSessionFactory;
 
-    public DocumentController(IMartenSessionFactory martenSessionFactory, IDocumentService documentService)
+    public DocumentController(IMartenSessionFactory martenSessionFactory, IDocumentQueryService documentQueryService, IDocumentCommandService documentCommandService)
     {
         _martenSessionFactory = martenSessionFactory;
-        _documentService = documentService;
+        _documentQueryService = documentQueryService;
+        _documentCommandService = documentCommandService;
     }
 
     [HttpGet]
@@ -27,20 +31,20 @@ public class DocumentController : ControllerBase
     {
         await using var session = _martenSessionFactory.GetQuerySession();
 
-        var documents = _documentService.SearchDocuments(session, searchText, page, 10, token);
+        var documents = _documentQueryService.SearchDocuments(session, searchText, page, 10, token);
 
         await foreach (var document in documents.WithCancellation(token))
             yield return new DocumentSearchResponse(document);
     }
 
     /// <summary>
-    ///     Get a document by id.
+    ///     Get a documentDetail by id.
     /// </summary>
-    /// <param name="documentId">The document id</param>
+    /// <param name="documentId">The documentDetail id</param>
     /// <param name="token">Cancellation token</param>
-    /// <returns>The current version of the document</returns>
+    /// <returns>The current version of the documentDetail</returns>
     /// <response code="200">Returns the newly created item</response>
-    /// <response code="404">The document does not exist or you do not have access to it</response>
+    /// <response code="404">The documentDetail does not exist or you do not have access to it</response>
     [HttpGet("{documentId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(string))]
@@ -48,13 +52,13 @@ public class DocumentController : ControllerBase
     {
         await using var session = _martenSessionFactory.GetQuerySession();
 
-        if (!documentId.TryUnHash<Document>(out var unhashedId))
+        if (!documentId.TryUnHash(out DocumentId unhashedId))
         {
             return NotFound();
         }
 
         // TODO: Validate user has access
-        var document = await _documentService.TryGetDocumentById(session, unhashedId, token);
+        var document = await _documentQueryService.TryGetDocumentById(session, unhashedId, token);
         if (document is null)
         {
             return NotFound(documentId);
@@ -73,21 +77,21 @@ public class DocumentController : ControllerBase
 
         return await _martenSessionFactory.RunInTransaction(async session =>
         {
-            var document = await _documentService.CreateDocument(session, owner, request.Title, request.Content, token);
+            var document = await _documentCommandService.CreateDocument(session, owner, request.Title, request.Content, token);
 
             await session.Commit(token);
-            return CreatedAtAction(nameof(Get), new {documentId = document.DocumentId.Hash<Document>()},
+            return CreatedAtAction(nameof(Get), new { documentId = document.DocumentId.Hash() },
                 new DocumentResponse(document));
         });
     }
 
     /// <summary>
-    ///     Update a document's content.
+    ///     Update a documentDetail's content.
     /// </summary>
-    /// <param name="documentId">The document id</param>
-    /// <param name="newContent">The new content of the document</param>
+    /// <param name="documentId">The documentDetail id</param>
+    /// <param name="newContent">The new content of the documentDetail</param>
     /// <param name="token">The cancellation token</param>
-    /// <returns>The updated document</returns>
+    /// <returns>The updated documentDetail</returns>
     [HttpPut("{documentId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(string))]
@@ -98,12 +102,12 @@ public class DocumentController : ControllerBase
         {
             // Forces all changes after this line to be committed immediately after the latest event version _as of this line_
             // Or rollback
-            if (!documentId.TryUnHash<Document>(out var unhashedId))
+            if (!documentId.TryUnHash(out DocumentId unhashedId))
             {
                 return NotFound(documentId);
             }
 
-            var streamKey = await _documentService.TryGetDocumentStreamKeyById(session.QuerySession, unhashedId, token);
+            var streamKey = await _documentQueryService.TryGetDocumentStreamKeyById(session.QuerySession, unhashedId, token);
             if (streamKey is null)
             {
                 return NotFound(documentId);
@@ -114,14 +118,14 @@ public class DocumentController : ControllerBase
                 return NotFound(documentId);
             }
 
-            var document = await _documentService.TryGetDocumentByStreamKey(session.QuerySession, streamKey, token);
+            var document = await _documentQueryService.TryGetDocumentByStreamKey(session.QuerySession, streamKey, token);
             if (document is null)
             {
                 return NotFound(documentId);
             }
 
             var updatedDocument =
-                await _documentService.UpdateDocument(
+                await _documentCommandService.UpdateDocument(
                     session,
                     document,
                     newContent.Title ?? document.Title,
@@ -137,7 +141,7 @@ public class DocumentController : ControllerBase
     {
         public DocumentSearchResponse(DocumentSearch document)
         {
-            DocumentId = document.DocumentId.Hash<Document>();
+            DocumentId = document.DocumentId.Hash();
             Owner = document.Owner;
             Title = document.Title;
             LastModified = document.LastModified;
@@ -165,12 +169,12 @@ public class DocumentController : ControllerBase
 
     public record DocumentResponse
     {
-        public DocumentResponse(Document document)
+        public DocumentResponse(DocumentDetail documentDetail)
         {
-            DocumentId = document.DocumentId.Hash<Document>();
-            Owner = document.Owner;
-            Title = document.Title;
-            Content = document.Content;
+            DocumentId = documentDetail.DocumentId.Hash();
+            Owner = documentDetail.Owner;
+            Title = documentDetail.Title;
+            Content = documentDetail.Content;
         }
 
         public string DocumentId { get; }

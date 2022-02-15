@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using HashidsNet;
+using MartenApi.EventStore;
 
 namespace MartenApi;
 
@@ -11,7 +12,9 @@ public static class HashIdManager
     private const int MinHashLength = 6;
 
     private const string SaltPrefix = "PupMartenApi__";
-    private static readonly ConcurrentDictionary<string, Hashids> HashidsDictionary = new ConcurrentDictionary<string, Hashids>();
+
+    private static readonly ConcurrentDictionary<string, Hashids> HashidsDictionary =
+        new ConcurrentDictionary<string, Hashids>();
 
     public static Hashids CreateHasher(string type)
     {
@@ -22,17 +25,17 @@ public static class HashIdManager
             HashSeparators);
     }
 
-    public static string Hash(this long id, string type)
+    private static string Hash(this long id, string type)
     {
         return HashidsDictionary.GetOrAdd(type.ToLowerInvariant(), CreateHasher).EncodeLong(id);
     }
 
-    public static string Hash<T>(this long id)
+    private static string Hash<T>(this long id)
     {
         return id.Hash(typeof(T).Name);
     }
 
-    public static bool TryUnHash(this string hash, string type, out long id)
+    private static bool TryUnHash(this string hash, string type, out long id)
     {
         try
         {
@@ -46,8 +49,36 @@ public static class HashIdManager
         }
     }
 
-    public static bool TryUnHash<T>(this string hash, out long id)
+    private static bool TryUnHash<T>(this string hash, out long id)
     {
         return hash.TryUnHash(typeof(T).Name, out id);
     }
+
+    #region StronglyTypedId extension methods
+
+    public static string Hash(this DocumentId id)
+    {
+        return Hash<DocumentId>(id.Value);
+    }
+
+    public static bool TryUnHash(this string hash, out DocumentId id)
+    {
+        var result = TryUnHash<DocumentId>(hash, out var longId);
+        id = new DocumentId(longId);
+        return result;
+    }
+
+    public static string Hash(this UserId id)
+    {
+        return Hash<UserId>(id.Value);
+    }
+
+    public static bool TryUnHash(this string hash, out UserId id)
+    {
+        var result = TryUnHash<UserId>(hash, out var longId);
+        id = new UserId(longId);
+        return result;
+    }
+
+    #endregion
 }

@@ -1,4 +1,5 @@
 ﻿using Marten;
+using Marten.Schema.Identity;
 using Weasel.Core;
 using Weasel.Core.Migrations;
 using Weasel.Postgresql;
@@ -28,25 +29,31 @@ public class EntityId<TEntity> : EntityId
     }
 }
 
-public interface IEntityIdProvider
+public interface IIdProvider
 {
+    string GenerateStreamKey();
     Task<long> GetNextId<TEntity>(IQuerySession querySession, CancellationToken token);
 }
 
-public class EntityIdProvider : IEntityIdProvider
+public class IdProvider : IIdProvider
 {
     // Note: This is deliberately not the interface - we need a property that is not on the interface.
-    private readonly IDocumentStore _documentStore;
+    private readonly DocumentStore _documentStore;
 
-    public EntityIdProvider(IDocumentStore documentStore)
+    public IdProvider(IDocumentStore documentStore)
     {
-        _documentStore = documentStore;
+        _documentStore = (documentStore as DocumentStore)!;
     }
 
 
+    public string GenerateStreamKey()
+    {
+        return CombGuidIdGeneration.NewGuid().ToString();
+    }
+
     public async Task<long> GetNextId<TEntity>(IQuerySession querySession, CancellationToken token)
     {
-        var sequence = (_documentStore as DocumentStore)!.Storage.FindFeature(typeof(EntityId<TEntity>)).Objects
+        var sequence = _documentStore.Storage.FindFeature(typeof(EntityId<TEntity>)).Objects
             .OfType<Sequence>().Single();
 
         return (await querySession.QueryAsync<long>(@"select nextval(?)", token, sequence.Identifier.QualifiedName))

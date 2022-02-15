@@ -1,12 +1,13 @@
 ﻿using Marten.Events;
 using Marten.Schema;
 using Marten.Schema.Indexing.Unique;
+using MartenApi.EventStore.Events;
 
-namespace MartenApi.EventStore.Document.Projections;
+namespace MartenApi.EventStore.Projections.Document;
 
 public record DocumentKeymap(
     [property: UniqueIndex(IndexType = UniqueIndexType.DuplicatedField, TenancyScope = TenancyScope.PerTenant)]
-    long DocumentId,
+    DocumentId DocumentId,
     [property: Identity] string StreamKey)
 {
     // TODO: Handle deletions / stream change
