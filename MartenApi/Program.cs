@@ -1,10 +1,10 @@
 using Marten;
 using Marten.Events;
 using Marten.Events.Daemon.Resiliency;
-using Marten.Events.Projections;
 using Marten.Storage;
+using MartenApi.EventStore;
 using MartenApi.EventStore.Impl;
-using MartenApi.EventStore.Projections.Document;
+using MartenApi.EventStore.Impl.Id;
 using MartenApi.EventStore.Query;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,15 +29,11 @@ builder.Services.AddMarten(options =>
     options.Events.StreamIdentity = StreamIdentity.AsString;
 
     // Add entity ids
-    options.Storage.Add<EntityId<DocumentDetail>>();
+    options.Storage.ConfigureEntityIdsForEventStore();
 
     // Add projections
-    // inline because it only happens on extremely rare events (document create)
-    options.Projections.SelfAggregate<DocumentKeymap>(ProjectionLifecycle.Inline);
-    // intended to be fetched by streamKey
-    options.Projections.SelfAggregate<DocumentDetail>(ProjectionLifecycle.Live);
-    options.Projections.Add<DocumentOwnerProjection>(ProjectionLifecycle.Async);
-    options.Projections.SelfAggregate<DocumentSearch>(ProjectionLifecycle.Async);
+    options.Projections.ConfigureProjectionsForEventStore();
+
 }).AddAsyncDaemon(builder.Environment.IsDevelopment() ? DaemonMode.Solo : DaemonMode.HotCold);
 
 builder.Services.AddControllers();
