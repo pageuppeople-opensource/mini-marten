@@ -3,6 +3,7 @@ using Marten.Events;
 using Marten.Events.Daemon.Resiliency;
 using Marten.Storage;
 using MartenApi.EventStore;
+using MartenApi.EventStore.Command;
 using MartenApi.EventStore.Impl;
 using MartenApi.EventStore.Impl.Id;
 using MartenApi.EventStore.Query;
@@ -45,10 +46,10 @@ builder.Services.AddSwaggerGen();
 // TODO: Throw in a tenant manager
 builder.Services.AddScoped<IMartenSessionFactory, MartenSessionFactory>();
 builder.Services.AddScoped<IDocumentQueryService, DocumentQueryService>();
+builder.Services.AddScoped<IDocumentCommandService, DocumentCommandService>();
 
 // As these services don't need anything injected themselves (apart from other singletons) they can be singletons
 builder.Services.AddSingleton<IIdProvider, IdProvider>();
-
 
 var app = builder.Build();
 

@@ -16,7 +16,4 @@ public interface IDocumentQueryService
 
     Task<string?> TryGetDocumentStreamKeyById(IQuerySession querySession, DocumentId documentId,
         CancellationToken token = default);
-
-    IAsyncEnumerable<DocumentOwner> GetDocumentOwners(IQuerySession querySession,
-        CancellationToken token = default);
 }

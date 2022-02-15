@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MartenApi.Controllers;
 
-[Route("DocumentDetail")]
+[Route("Document")]
 [ApiController]
 public class DocumentController : ControllerBase
 {

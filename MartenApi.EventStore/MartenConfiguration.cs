@@ -11,7 +11,6 @@ public static class MartenConfiguration
     {
         projections.SelfAggregate<DocumentKeymap>(ProjectionLifecycle.Inline);
         projections.SelfAggregate<DocumentDetail>(ProjectionLifecycle.Live);
-        projections.Add<DocumentOwnerProjection>(ProjectionLifecycle.Async);
         projections.SelfAggregate<DocumentSearch>(ProjectionLifecycle.Async);
     }
 

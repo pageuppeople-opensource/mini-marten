@@ -1,5 +1,6 @@
 ﻿using MartenApi.EventStore.Events;
 using MartenApi.EventStore.Impl;
+using MartenApi.EventStore.Impl.Id;
 using MartenApi.EventStore.Projections.Document;
 
 namespace MartenApi.EventStore.Command;

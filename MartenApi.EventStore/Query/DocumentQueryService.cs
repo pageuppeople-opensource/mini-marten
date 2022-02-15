@@ -56,10 +56,4 @@ public class DocumentQueryService : IDocumentQueryService
 
         return streamKey;
     }
-
-    public IAsyncEnumerable<DocumentOwner> GetDocumentOwners(IQuerySession querySession,
-        CancellationToken token = default)
-    {
-        return querySession.Query<DocumentOwner>().OrderBy(d => d.Owner).ToAsyncEnumerable(token);
-    }
 }
