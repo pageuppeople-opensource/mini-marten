@@ -1,3 +1,4 @@
+using LamarCodeGeneration;
 using Marten;
 using Marten.Events;
 using Marten.Events.Daemon.Resiliency;
@@ -7,18 +8,22 @@ using MartenApi.EventStore.Command;
 using MartenApi.EventStore.Impl;
 using MartenApi.EventStore.Impl.Id;
 using MartenApi.EventStore.Query;
+using Oakton;
+using Weasel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddMarten(options =>
 {
+    options.AutoCreateSchemaObjects = AutoCreate.All;
+    options.GeneratedCodeMode = TypeLoadMode.Auto;
     options.Connection(
         "Server=localhost;Port=5432;Database=marten;User Id=postgres;Password=postgres;");
 
     // Multi tenancy
     options.Policies.AllDocumentsAreMultiTenanted();
-    //options.Advanced.DefaultTenantUsageEnabled = false;
+    //options.Advanced.DefaultTenantUsageEnabled = false; // currently broken https://github.com/JasperFx/marten/issues/2073
     options.Events.TenancyStyle = TenancyStyle.Conjoined;
 
     // Enable metadata
@@ -55,7 +60,7 @@ var app = builder.Build();
 
 await (app.Services.GetService<IDocumentStore>() as DocumentStore)!.Schema.ApplyAllConfiguredChangesToDatabaseAsync();
 
-// Configure the HTTP request pipeline.
+//Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -68,4 +73,5 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+return await app.RunOaktonCommands(args);
+//app.Run();

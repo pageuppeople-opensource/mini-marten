@@ -1,0 +1,19 @@
+{
+  "name": "mini-marten",
+  "version": "1.0.0",
+  "description": "Quick test repo that shows some different marten patterns in use",
+  "main": " ",
+  "scripts": {
+    "marten": "cd MartenApi && dotnet run -- "
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PageUpPeopleOrg/mini-marten.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/PageUpPeopleOrg/mini-marten/issues"
+  },
+  "homepage": "https://github.com/PageUpPeopleOrg/mini-marten#readme"
+}

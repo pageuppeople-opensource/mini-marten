@@ -9,7 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Lamar.Microsoft.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="LamarCodeGeneration.Commands" Version="3.1.5" />
     <PackageReference Include="Marten" Version="5.0.0-alpha.5" />
+    <PackageReference Include="Marten.CommandLine" Version="5.0.0-alpha.5" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.14.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
   </ItemGroup>
