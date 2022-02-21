@@ -58,7 +58,7 @@ builder.Services.AddSingleton<IIdProvider, IdProvider>();
 
 var app = builder.Build();
 
-await (app.Services.GetService<IDocumentStore>() as DocumentStore)!.Schema.ApplyAllConfiguredChangesToDatabaseAsync();
+//await (app.Services.GetService<IDocumentStore>() as DocumentStore)!.Schema.ApplyAllConfiguredChangesToDatabaseAsync();
 
 //Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -68,9 +68,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 return await app.RunOaktonCommands(args);
